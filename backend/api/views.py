@@ -1,30 +1,26 @@
 from django.shortcuts import render
+from rest_framework import viewsets
+
+from backend.api.serializers import RecipeSerializer, IngredientSerializer, TagSerializer
+from backend.recipes.models import Recipe, Tag, Ingredient
 
 
+class RecipeViewSet(viewsets.ModelViewSet):
+    queryset = Recipe.objects.all()
+    # permission_classes =
+    # serializer_class = RecipeSerializer
+    # pagination_class =
+    serializer_class = RecipeSerializer
 
 
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+class IngredientViewSet(viewsets.ModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
 
 # Create your views here.
 # def send_conf_code(email, confirmation_code):

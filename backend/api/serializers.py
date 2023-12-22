@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
+from backend.recipes.models import Recipe, Tag, Ingredient
 from backend.users.models import User
 
 USERNAME_MAX_LEN = 150
@@ -10,10 +11,25 @@ EMAIL_MAX_LEN = 254
 username_validator = UnicodeUsernameValidator()
 
 
+class RecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Recipe."""
+    class Meta:
+        model = Recipe
+        fields = (
+            'name', 'description', 'ingredients',
+            'directions', 'image')
 
+class TagSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Tag."""
+    class Meta:
+        model = Tag
+        fields = '__all__'
 
-
-
+class IngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Ingredient."""
+    class Meta:
+        model = Ingredient
+        fields = '__all__'
 
 
 
