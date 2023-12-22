@@ -3,8 +3,8 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from rest_framework import serializers
 
-from backend.recipes.models import Recipe, Tag, Ingredient
-from backend.users.models import User
+from recipes.models import Recipe, Tag, Ingredient
+
 
 USERNAME_MAX_LEN = 150
 EMAIL_MAX_LEN = 254

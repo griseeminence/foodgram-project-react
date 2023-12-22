@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from rest_framework.routers import DefaultRouter
 
-from backend.api.views import RecipeViewSet, TagViewSet, IngredientViewSet
+from .views import RecipeViewSet, TagViewSet, IngredientViewSet
 
 app_name = 'api'
 

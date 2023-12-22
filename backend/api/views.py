@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets
 
-from backend.api.serializers import RecipeSerializer, IngredientSerializer, TagSerializer
-from backend.recipes.models import Recipe, Tag, Ingredient
+from .serializers import RecipeSerializer, IngredientSerializer, TagSerializer
+from recipes.models import Recipe, Tag, Ingredient
 
 
 class RecipeViewSet(viewsets.ModelViewSet):

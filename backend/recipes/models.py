@@ -1,6 +1,9 @@
+from django.contrib.auth import get_user_model
 from django.db import models
 
-from backend.users.models import User
+
+User = get_user_model()
+
 
 #TODO: Добавить verbose_name к полям во всех моделях
 

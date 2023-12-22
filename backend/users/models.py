@@ -46,10 +46,6 @@ class User(AbstractUser):
         max_length=MAX_LENGTH_CHARACTERS_1,
         blank=True
     )
-    bio = models.TextField(
-        'Биография',
-        blank=True
-    )
 
     class Meta:
         verbose_name = 'Пользователь'

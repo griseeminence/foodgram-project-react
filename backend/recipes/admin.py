@@ -7,7 +7,7 @@ from .models import Recipe, Ingredient, Tag
 class RecipeAdmin(admin.ModelAdmin):
     list_display = ('title', 'author')
     list_filter = ('author', 'title', 'tag')
-    list_editable = ('title', 'author')
+    # list_editable = ('title', 'author')
     search_fields = ('title',)
 
     def author_name(self, obj):
@@ -22,13 +22,13 @@ class RecipeAdmin(admin.ModelAdmin):
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('title', 'unit')
-    list_filter = 'title'
-    list_editable = ('title', 'amount', 'unit')
+    list_filter = ('title',)
+    # list_editable = ('title', 'amount', 'unit')
     search_fields = ('title',)
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('title', 'color', 'slug')
-    list_editable = ('title', 'color', 'slug')
+    # list_editable = ('title', 'color', 'slug')
     search_fields = ('title',)
