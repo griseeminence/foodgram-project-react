@@ -5,6 +5,10 @@ from rest_framework import serializers
 
 from recipes.models import Recipe, Tag, Ingredient
 
+from recipes.models import ShoppingList
+from users.models import Subscription
+
+from recipes.models import FavoriteRecipe
 
 USERNAME_MAX_LEN = 150
 EMAIL_MAX_LEN = 254
@@ -13,39 +17,53 @@ username_validator = UnicodeUsernameValidator()
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Recipe."""
+
     class Meta:
         model = Recipe
         fields = (
             'name', 'description', 'ingredients',
             'directions', 'image')
+        read_only_fields = ['author']
+
+    def create(self, validated_data):
+
+        user = self.context['request'].user
+        recipe = Recipe.objects.create(author=user, **validated_data)
+        return recipe
+
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Tag."""
+
     class Meta:
         model = Tag
         fields = '__all__'
 
+
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Ingredient."""
+
     class Meta:
         model = Ingredient
         fields = '__all__'
 
 
+class SubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscription
+        fields = '__all__'
 
 
+class FavoriteRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteRecipe
+        fields = '__all__'
 
 
-
-
-
-
-
-
-
-
-
-
+class ShoppingListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShoppingList
+        fields = '__all__'
 
 # def not_me_validator(value):
 #     """

@@ -2,17 +2,9 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 
+
+
 MAX_LENGTH_CHARACTERS_1 = 150
-
-USER = 'user'
-ADMIN = 'admin'
-MODERATOR = 'moderator'
-
-ROLES = [
-    (USER, USER),
-    (ADMIN, ADMIN),
-    (MODERATOR, MODERATOR),
-]
 
 
 class User(AbstractUser):
@@ -38,31 +30,39 @@ class User(AbstractUser):
         'email address',
         unique=True
     )
-    #
-    role = models.CharField(
-        'Роль',
-        choices=ROLES,
-        default=USER,
-        max_length=MAX_LENGTH_CHARACTERS_1,
-        blank=True
-    )
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ('id',)
 
-    @property
-    def is_user(self):
-        return self.role == USER
+    def subscribe(self, author):
+        Subscription.objects.get_or_create(user=self, author=author)
 
-    @property
-    def is_moderator(self):
-        return self.role == MODERATOR
+    def unsubscribe(self, author):
+        Subscription.objects.filter(user=self, author=author).delete()
 
-    @property
-    def is_admin(self):
-        return self.role == ADMIN or self.is_superuser or self.is_staff
+    def is_subscribed_to(self, author):
+        return Subscription.objects.filter(user=self, author=author).exists()
 
     def __str__(self):
         return self.username
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscribers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'author')
+        # models.UniqueConstraint(
+        #     fields=(
+        #         "user",
+        #         "author",
+        #     ),
+        #     name="unique_follow",
+        # )
+
+
+
