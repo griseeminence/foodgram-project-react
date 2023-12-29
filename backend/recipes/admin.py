@@ -5,10 +5,10 @@ from .models import Recipe, Ingredient, Tag
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'author')
-    list_filter = ('author', 'title', 'tag')
+    list_display = ('name', 'author')
+    list_filter = ('author', 'name', 'tags')
     # list_editable = ('title', 'author')
-    search_fields = ('title',)
+    search_fields = ('name',)
 
     def author_name(self, obj):
         return obj.author.username
@@ -21,14 +21,14 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('title', 'unit')
-    list_filter = ('title',)
+    list_display = ('name', 'measurement_unit')
+    list_filter = ('name',)
     # list_editable = ('title', 'amount', 'unit')
-    search_fields = ('title',)
+    search_fields = ('name',)
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('title', 'color', 'slug')
+    list_display = ('name', 'color', 'slug')
     # list_editable = ('title', 'color', 'slug')
-    search_fields = ('title',)
+    search_fields = ('name',)

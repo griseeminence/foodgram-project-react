@@ -125,6 +125,15 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'users.User'
 TEST_EMAIL = 'Testforrest2023@gmail.com'
 
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+    'SERIALIZERS': {
+        'user': 'djoser.serializers.UserSerializer',
+        'current_user': 'djoser.serializers.UserSerializer',
+    },
+}
+
+
 # LOGIN_URL = '/login/'
 # LOGIN_REDIRECT_URL = '/'
 # LOGOUT_REDIRECT_URL = '/'

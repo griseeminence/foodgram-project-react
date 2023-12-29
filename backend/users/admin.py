@@ -1,21 +1,14 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 
-from .models import User
+User = get_user_model()
 
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     list_display = (
-        'username',
-        'first_name',
-        'last_name',
-        'email',
-    )
-    list_edit = (
-        'first_name',
-        'last_name',
-    )
-    search_fields = (
-        'email',
-        'username',
-    )
+        'id', 'username', 'email',
+        'first_name', 'last_name', 'date_joined',)
+    search_fields = ('email', 'username', 'first_name', 'last_name')
+    list_filter = ('date_joined', 'email', 'first_name')
+    empty_value_display = 'Нет данных'
