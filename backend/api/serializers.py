@@ -7,8 +7,11 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers, status
 from django.shortcuts import get_object_or_404
 from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe
-from rest_framework.fields import SerializerMethodField
+from rest_framework.fields import SerializerMethodField, IntegerField
 from rest_framework.relations import PrimaryKeyRelatedField
+
+from backend.recipes.models import RecipeIngredients
+
 # from drf_extra_fields.fields import Base64ImageField
 
 User = get_user_model()
@@ -100,7 +103,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class RecipeReadSerializer(ModelSerializer):
+class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = UsersSerializer(read_only=True)
     ingredients = SerializerMethodField()
@@ -154,7 +157,7 @@ class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
     id = IntegerField(write_only=True)
 
     class Meta:
-        model = IngredientInRecipe
+        model = RecipeIngredients
         fields = ('id', 'amount')
 
 
@@ -211,8 +214,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create_ingredients_amounts(self, ingredients, recipe):
-        IngredientInRecipe.objects.bulk_create(
-            [IngredientInRecipe(
+        RecipeIngredients.objects.bulk_create(
+            [RecipeIngredients(
                 ingredient=Ingredient.objects.get(id=ingredient['id']),
                 recipe=recipe,
                 amount=ingredient['amount']
