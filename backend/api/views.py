@@ -1,9 +1,15 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, pagination, status
 from rest_framework import viewsets, permissions, serializers
+from rest_framework.viewsets import ReadOnlyModelViewSet
+
+from .filters import IngredientFilter
+from .permissions import IsAdminOrReadOnly
 from .serializers import RecipeSerializer, IngredientSerializer, TagSerializer, SubscriptionSerializer, \
-    FavoriteRecipeSerializer, ShoppingListSerializer, UserGetTokenSerializer, UsersSerializer, SignUpSerializer
+    FavoriteRecipeSerializer, ShoppingListSerializer, UserGetTokenSerializer, UsersSerializer, SignUpSerializer, \
+    SubscribeSerializer, SubscribeListSerializer
 from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe
 from rest_framework.decorators import action
 
@@ -79,18 +85,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'detail': 'Subscribed to author successfully.'}, status=status.HTTP_201_CREATED)
-
-
-class TagViewSet(viewsets.ModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-
-
-class IngredientViewSet(viewsets.ModelViewSet):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
-    permission_classes = [permissions.AllowAny]
-    # filter_backends = [IngredientSearchFilter]
 
 
 class SubscriptionViewSet(viewsets.ModelViewSet):
@@ -174,70 +168,58 @@ class UsersViewSet(mixins.ListModelMixin,
     queryset = User.objects.all()
     serializer_class = UsersSerializer
     permission_classes = (AllowAny,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('username',)
+    # filter_backends = (filters.SearchFilter,)
+    # search_fields = ('username',)
 
     @action(
-        detail=False,
-        methods=['get', 'patch', 'delete'],
-        url_path=r'([\w.@+-]+)',
-        url_name='get_user',
-        permission_classes=(IsAuthenticated,)
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated],
     )
-    def get_username_info(self, request, username):
-        """
-        Получает информацию о пользователе по полю 'username'
-        с возможность редактирования.
-        """
-        user = get_object_or_404(User, username=username)
-        if request.method == 'PATCH':
-            serializer = UsersSerializer(user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        elif request.method == 'DELETE':
-            user.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        serializer = UsersSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def subscribe(self, request, id):
+        user = request.user
+        author = get_object_or_404(User, pk=id)
 
-    @action(
-        detail=False,
-        methods=['get', 'patch'],
-        url_path='me',
-        url_name='me',
-        permission_classes=(permissions.IsAuthenticated,)
-    )
-    def get_data_for_me(self, request):
-        """Получает информацию о себе с возможностью
-        частичного изменения через patch."""
-        if request.method == 'PATCH':
-            serializer = UsersSerializer(
-                request.user,
-                data=request.data,
-                partial=True,
+        if request.method == 'POST':
+            serializer = SubscribeListSerializer(
+                author, data=request.data, context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
-            serializer.save(role=request.user.role)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = UsersSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            Subscribe.objects.create(user=user, author=author)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            get_object_or_404(
+                Follow, user=user, author=author
+            ).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, permission_classes=[IsAuthenticated])
+    def subscriptions(self, request):
+        user = request.user
+        queryset = User.objects.filter(following__user=user)
+        pages = self.paginate_queryset(queryset)
+        serializer = SubscribeListSerializer(
+            pages, many=True, context={'request': request}
+        )
+        return self.get_paginated_response(serializer.data)
 
 
-class GetTokenViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    """Получение JWT токена с проверкой."""
-    queryset = User.objects.all()
-    serializer_class = UserGetTokenSerializer
-    permission_classes = (AllowAny,)
 
-    def create(self, request, *args, **kwargs):
-        serializer = UserGetTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data.get('username')
-        confirmation_code = serializer.validated_data.get('confirmation_code')
-        user = get_object_or_404(User, username=username)
-        if not default_token_generator.check_token(user, confirmation_code):
-            message = {'confirmation_code': 'Неверный код подтверждения'}
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
-        message = {'token': str(AccessToken.for_user(user))}
-        return Response(message, status=status.HTTP_200_OK)
+
+
+
+# TODO: D
+class TagViewSet(ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+
+
+# TODO: D
+class IngredientViewSet(ReadOnlyModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter

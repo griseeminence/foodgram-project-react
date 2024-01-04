@@ -25,7 +25,10 @@ INSTALLED_APPS = [
     'recipes',
     'users',
     'rest_framework',
+    'rest_framework.authtoken',
+    'djoser',
     'debug_toolbar',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -61,14 +64,24 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('POSTGRES_DB', 'django'),
-#         'USER': os.getenv('POSTGRES_USER', 'django'),
-#         'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
-#         'HOST': os.getenv('DB_HOST', ''),
-#         'PORT': os.getenv('DB_PORT', 5432)
-#     }
-# }
+#         'ENGINE': os.getenv(
+#             'DB_ENGINE', default='django.db.backends.postgresql'),
+#         'NAME': os.getenv(
+#             'POSTGRES_DB',
+#             default='postgres'),
+#         'USER': os.getenv(
+#             'POSTGRES_USER',
+#             default='postgres'),
+#         'PASSWORD': os.getenv(
+#             'POSTGRES_PASSWORD',
+#             default='postgres'),
+#         'HOST': os.getenv(
+#             'DB_HOST',
+#             default='db'),
+#         'PORT': os.getenv(
+#             'DB_PORT',
+#             default='5432'),
+#     }}
 
 DATABASES = {
     'default': {
@@ -102,6 +115,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -112,26 +126,27 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.LimitPageNumberPagination',
     'PAGE_SIZE': 6,
-
 }
 
 AUTH_USER_MODEL = 'users.User'
 TEST_EMAIL = 'Testforrest2023@gmail.com'
 
-DJOSER = {
-    'LOGIN_FIELD': 'email',
-    'SERIALIZERS': {
-        'user': 'djoser.serializers.UserSerializer',
-        'current_user': 'djoser.serializers.UserSerializer',
-    },
-}
+# DJOSER = {
+#     'LOGIN_FIELD': 'email',
+#     'SERIALIZERS': {
+#         'user': 'djoser.serializers.UserSerializer',
+#         'current_user': 'djoser.serializers.UserSerializer',
+#     },
+# }
 
 
 # LOGIN_URL = '/login/'

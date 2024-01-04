@@ -9,18 +9,19 @@ from .views import RecipeViewSet, TagViewSet, IngredientViewSet, SubscriptionVie
 app_name = 'api'
 
 router = DefaultRouter()
-
-router.register('recipes', RecipeViewSet, basename='recipes')
+router.register('users', UsersViewSet)
 router.register('tags', TagViewSet, basename='tags')
 router.register('ingredients', IngredientViewSet, basename='ingredients')
-router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
-router.register(r'favorite-recipes', FavoriteRecipeViewSet, basename='favorite-recipe')
-router.register(r'shopping-list', ShoppingListViewSet, basename='shopping-list')
-router.register("users", UsersViewSet, "users")
+router.register('recipes', RecipeViewSet, basename='recipes')
+
+# router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
+# router.register(r'favorite-recipes', FavoriteRecipeViewSet, basename='favorite-recipe')
+# router.register(r'shopping-list', ShoppingListViewSet, basename='shopping-list')
+
+
 
 urlpatterns = [
     path('', include(router.urls)),
-    # path('', something.as_view(), name='home'),
     path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
 ]

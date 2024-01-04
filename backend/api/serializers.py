@@ -13,18 +13,71 @@ USERNAME_MAX_LEN = 150
 EMAIL_MAX_LEN = 254
 username_validator = UnicodeUsernameValidator()
 
-class UsersSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели CustomUser."""
+class UserSerializer(UserSerializer):
+    """ Сериализатор пользователя """
+    is_subscribed = SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name')
+        fields = ('email', 'id', 'username', 'first_name',
+                  'last_name', 'is_subscribed', )
 
     def get_is_subscribed(self, obj):
-        pass
+        request = self.context.get('request')
+        if self.context.get('request').user.is_anonymous:
+            return False
+        return obj.following.filter(user=request.user).exists()
 
-    def create(self, validated_data):
-        pass
+
+class UserCreateSerializer(UserCreateSerializer):
+    """ Сериализатор создания пользователя """
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'username', 'first_name',
+            'last_name', 'password')
+
+
+class SubscribeListSerializer(UserSerializer):
+    """ Сериализатор для получения подписок """
+    recipes_count = SerializerMethodField()
+    recipes = SerializerMethodField()
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ('recipes_count', 'recipes')
+        read_only_fields = ('email', 'username', 'first_name', 'last_name')
+
+    def validate(self, data):
+        author_id = self.context.get(
+            'request').parser_context.get('kwargs').get('id')
+        author = get_object_or_404(User, id=author_id)
+        user = self.context.get('request').user
+        if user.follower.filter(author=author_id).exists():
+            raise ValidationError(
+                detail='Подписка уже существует',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        if user == author:
+            raise ValidationError(
+                detail='Нельзя подписаться на самого себя',
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        return data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        limit = request.GET.get('recipes_limit')
+        recipes = obj.recipes.all()
+        if limit:
+            recipes = recipes[: int(limit)]
+        serializer = RecipeShortSerializer(recipes, many=True, read_only=True)
+        return serializer.data
+
+    
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Tag."""
@@ -84,7 +137,7 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class SubscriptionSerializer(serializers.ModelSerializer):
+class SubscribeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscribe
         fields = '__all__'
@@ -103,72 +156,3 @@ class ShoppingListSerializer(serializers.ModelSerializer):
 
 
 
-
-
-
-
-
-
-
-
-#TODO: USERS SERIALIZERs
-
-
-
-
-
-
-class SignUpSerializer(serializers.Serializer):
-    """Сериализатор для создания объекта класса CustomUser."""
-
-    username = serializers.CharField(
-        max_length=USERNAME_MAX_LEN,
-        required=True,
-        validators=[username_validator],
-    )
-    email = serializers.EmailField(
-        max_length=EMAIL_MAX_LEN,
-        required=True,
-    )
-
-    class Meta:
-        model = User
-        fields = (
-            'username', 'email'
-        )
-
-    def validate(self, data):
-        """
-        Проверка на уникальность пользователей при регистрации.
-        Запрет на одинаковые поля 'username' и 'email' при регистрации.
-        """
-        if not User.objects.filter(
-            username=data.get("username"), email=data.get("email")
-        ).exists():
-            if User.objects.filter(username=data.get("username")):
-                raise serializers.ValidationError(
-                    "Пользователь с таким 'username' уже существует"
-                )
-
-            if User.objects.filter(email=data.get("email")):
-                raise serializers.ValidationError(
-                    "Пользователь с таким 'email' уже существует"
-                )
-        return data
-
-
-class UserGetTokenSerializer(serializers.Serializer):
-    """Сериализатор класса CustomUser при получении JWT."""
-    username = serializers.RegexField(
-        regex=r'[\w.@+-]+',
-        max_length=150,
-        required=True
-    )
-    confirmation_code = serializers.CharField(
-        max_length=150,
-        required=True
-    )
-
-    class Meta:
-        model = User
-        fields = '__all__'
