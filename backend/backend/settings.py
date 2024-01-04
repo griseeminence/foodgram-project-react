@@ -148,6 +148,25 @@ TEST_EMAIL = 'Testforrest2023@gmail.com'
 #     },
 # }
 
+DJOSER = {
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.UsersCreateSerializer',
+        'user': 'api.serializers.UsersSerializer',
+        'current_user': 'api.serializers.UsersSerializer',
+    },
+
+    'PERMISSIONS': {
+        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+    },
+    'HIDE_USERS': False,
+}
+
+
+
+
+
+
 
 # LOGIN_URL = '/login/'
 # LOGIN_REDIRECT_URL = '/'
