@@ -1,16 +1,21 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.utils import timezone
-from djoser.serializers import UserCreateSerializer, UserSerializer
-from rest_framework import serializers, status
+from django.db.models import F
 from django.shortcuts import get_object_or_404
-from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe
-from rest_framework.fields import SerializerMethodField, IntegerField
+from djoser.serializers import UserCreateSerializer, UserSerializer
+
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
+from rest_framework.fields import IntegerField, SerializerMethodField
 from rest_framework.relations import PrimaryKeyRelatedField
 
-from backend.recipes.models import RecipeIngredients
+
+from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe
+
+
+from recipes.models import RecipeIngredients
+from rest_framework.serializers import ModelSerializer
 
 # from drf_extra_fields.fields import Base64ImageField
 
@@ -91,23 +96,23 @@ class SubscribeSerializer(UsersSerializer):
         return serializer.data
 
 
-class IngredientSerializer(serializers.ModelSerializer):
+class IngredientSerializer(ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '__all__'
 
 
-class TagSerializer(serializers.ModelSerializer):
+class TagSerializer(ModelSerializer):
     class Meta:
         model = Tag
         fields = '__all__'
 
 
-class RecipeReadSerializer(serializers.ModelSerializer):
+class RecipeReadSerializer(ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = UsersSerializer(read_only=True)
     ingredients = SerializerMethodField()
-    image = Base64ImageField()
+    # image = Base64ImageField()
     is_favorited = SerializerMethodField(read_only=True)
     is_in_shopping_cart = SerializerMethodField(read_only=True)
 
@@ -153,7 +158,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 
 
-class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
+class IngredientInRecipeWriteSerializer(ModelSerializer):
     id = IntegerField(write_only=True)
 
     class Meta:
@@ -161,12 +166,12 @@ class IngredientInRecipeWriteSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
-class RecipeWriteSerializer(serializers.ModelSerializer):
+class RecipeWriteSerializer(ModelSerializer):
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(),
                                   many=True)
     author = UsersSerializer(read_only=True)
     ingredients = IngredientInRecipeWriteSerializer(many=True)
-    image = Base64ImageField()
+    # image = Base64ImageField()
 
     class Meta:
         model = Recipe
@@ -249,8 +254,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return RecipeReadSerializer(instance, context=context).data
 
 
-class RecipeShortSerializer(serializers.ModelSerializer):
-    image = Base64ImageField()
+class RecipeShortSerializer(ModelSerializer):
+    # image = Base64ImageField()
 
     class Meta:
         model = Recipe

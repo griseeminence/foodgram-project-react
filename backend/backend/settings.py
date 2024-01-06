@@ -27,7 +27,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
-    'debug_toolbar',
     'django_filters',
 ]
 
@@ -39,7 +38,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -62,33 +60,33 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': os.getenv(
-#             'DB_ENGINE', default='django.db.backends.postgresql'),
-#         'NAME': os.getenv(
-#             'POSTGRES_DB',
-#             default='postgres'),
-#         'USER': os.getenv(
-#             'POSTGRES_USER',
-#             default='postgres'),
-#         'PASSWORD': os.getenv(
-#             'POSTGRES_PASSWORD',
-#             default='postgres'),
-#         'HOST': os.getenv(
-#             'DB_HOST',
-#             default='db'),
-#         'PORT': os.getenv(
-#             'DB_PORT',
-#             default='5432'),
-#     }}
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+        'ENGINE': os.getenv(
+            'DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': os.getenv(
+            'POSTGRES_DB',
+            default='postgres'),
+        'USER': os.getenv(
+            'POSTGRES_USER',
+            default='postgres'),
+        'PASSWORD': os.getenv(
+            'POSTGRES_PASSWORD',
+            default='postgres'),
+        'HOST': os.getenv(
+            'DB_HOST',
+            default='db'),
+        'PORT': os.getenv(
+            'DB_PORT',
+            default='5432'),
+    }}
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -129,11 +127,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'api.pagination.LimitPageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 6,
 }
 

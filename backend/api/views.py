@@ -1,43 +1,34 @@
-from django.contrib.auth.tokens import default_token_generator
-from django.shortcuts import render
+
+from django.db.models import Sum
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import viewsets, pagination, status
-from rest_framework import viewsets, permissions, serializers
-from rest_framework.viewsets import ReadOnlyModelViewSet
-
-from .filters import IngredientFilter
-from .permissions import IsAdminOrReadOnly
-from .serializers import RecipeSerializer, IngredientSerializer, TagSerializer, SubscriptionSerializer, \
-    FavoriteRecipeSerializer, ShoppingListSerializer, UserGetTokenSerializer, UsersSerializer, SignUpSerializer, \
-    SubscribeSerializer, SubscribeListSerializer
+from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
+import datetime
+from .filters import IngredientFilter, RecipeFilter
+from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
+from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer, \
+    RecipeShortSerializer, UsersSerializer, SubscribeSerializer
 from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe
-from rest_framework.decorators import action
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 
-from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, mixins, permissions, status, viewsets
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS
-from rest_framework.response import Response
-
-from django.shortcuts import render
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 
 from rest_framework.response import Response
 
-
+from recipes.models import RecipeIngredients
 
 User = get_user_model()
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
-    pagination_class = CustomPagination
+    # pagination_class = CustomPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
@@ -56,9 +47,9 @@ class RecipeViewSet(ModelViewSet):
     )
     def favorite(self, request, pk):
         if request.method == 'POST':
-            return self.add_to(Favourite, request.user, pk)
+            return self.add_to(FavoriteRecipe, request.user, pk)
         else:
-            return self.delete_from(Favourite, request.user, pk)
+            return self.delete_from(FavoriteRecipe, request.user, pk)
 
     @action(
         detail=True,
@@ -95,7 +86,7 @@ class RecipeViewSet(ModelViewSet):
         if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
 
-        ingredients = IngredientInRecipe.objects.filter(
+        ingredients = RecipeIngredients.objects.filter(
             recipe__shopping_cart__user=request.user
         ).values(
             'ingredient__name',
@@ -155,18 +146,18 @@ class UsersViewSet(UserViewSet):
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(
-        detail=False,
-        permission_classes=[IsAuthenticated]
-    )
-    def subscriptions(self, request):
-        user = request.user
-        queryset = User.objects.filter(subscribing__user=user)
-        pages = self.paginate_queryset(queryset)
-        serializer = SubscribeSerializer(pages,
-                                         many=True,
-                                         context={'request': request})
-        return self.get_paginated_response(serializer.data)
+    # @action(
+    #     detail=False,
+    #     permission_classes=[IsAuthenticated]
+    # )
+    # def subscriptions(self, request):
+    #     user = request.user
+    #     queryset = User.objects.filter(subscribing__user=user)
+    #     pages = self.paginate_queryset(queryset)
+    #     serializer = SubscribeSerializer(pages,
+    #                                      many=True,
+    #                                      context={'request': request})
+    #     return self.get_paginated_response(serializer.data)
 
 
 

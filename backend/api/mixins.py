@@ -1,5 +1,5 @@
 from rest_framework.permissions import AllowAny
-
+from django.shortcuts import get_object_or_404
 from backend.api.permissions import IsAdminOrReadOnly
 from backend.api.serializers import SubscribeSerializer
 from backend.recipes.models import Recipe
@@ -19,8 +19,8 @@ class GetObjectMixin:
         return recipe
 
 
-class PermissionAndPaginationMixin:
-    """Миксина для списка тегов и ингридиентов."""
-
-    permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+# class PermissionAndPaginationMixin:
+#     """Миксина для списка тегов и ингридиентов."""
+#
+#     permission_classes = (IsAdminOrReadOnly,)
+#     pagination_class = None
