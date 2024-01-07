@@ -7,7 +7,7 @@ User = get_user_model()
 
 
 class Recipe(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipes', verbose_name='Автор') #SET_NULL???
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipes', verbose_name='Автор', null=True) #SET_NULL???
     name = models.CharField('Название рецепта', max_length=255)
     image = models.ImageField(
         'Изображение рецепта',
@@ -15,15 +15,15 @@ class Recipe(models.Model):
         blank=True,
         null=True)
     text = models.TextField('Описание рецепта', max_length=1000)
-    cooking_time = models.IntegerField(verbose_name='Время приготовления', default=0)  # TODO: Добавить время в минутах
-    ingredients = models.ManyToManyField('Ingredient', blank=False, through='RecipeIngredients')
-    tags = models.ManyToManyField('Tag')
+    cooking_time = models.IntegerField(verbose_name='Время приготовления', default=0)
+    ingredients = models.ManyToManyField('Ingredient', blank=False, through='RecipeIngredients', related_name='recipes')
+    tags = models.ManyToManyField('Tag', related_name='recipes')
     pub_date = models.DateTimeField(auto_now_add=True, blank=True, null=True)
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ['name']  # ordering = ['-created_at']
+        ordering = ['-id']  # ordering = ['-created_at']
 
     def add_to_favorites(self, user):
         FavoriteRecipe.objects.get_or_create(user=user, recipe=self)
@@ -39,8 +39,8 @@ class Recipe(models.Model):
 
 
 class RecipeIngredients(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='recipe_ingredient')
-    ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE, related_name='ingredient_recipe')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredient_list')
+    ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE, related_name='ingredient_list')
     amount = models.PositiveSmallIntegerField(
         default=1,
         verbose_name='Количество',)
@@ -52,13 +52,16 @@ class RecipeIngredients(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField('Название ингредиента', max_length=100)
-    measurement_unit = models.CharField('Единица измерения', max_length=25)
+
+
+    name = models.CharField('Название', max_length=200)
+    measurement_unit = models.CharField('Единица измерения', max_length=200)
 
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ['name']
+
 
     def __str__(self):
         return f'{self.name}, {self.measurement_unit}.'
@@ -66,8 +69,7 @@ class Ingredient(models.Model):
 
 class Tag(models.Model):
     name = models.CharField('Название', max_length=25, unique=True)
-    color = models.CharField('Цвет', max_length=25,
-                             unique=True, db_index=False)  # TODO: Добавить цвет в тегах. Специальное поле?
+    color = models.CharField('Цвет', max_length=25, unique=True, db_index=False)
     slug = models.SlugField('Слаг', max_length=25, unique=True)
 
     class Meta:
@@ -84,12 +86,12 @@ class Subscribe(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='follower',
+        related_name='subscriber',
         verbose_name='Подписчик')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='following',
+        related_name='subscribing',
         verbose_name='Автор')
     created_at = models.DateTimeField(
         'Дата подписки',
@@ -105,18 +107,21 @@ class Subscribe(models.Model):
 
 
 class ShoppingCart(models.Model):
-    user = models.OneToOneField(
+    """ Модель Корзина покупок """
+
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='shopping_cart',
-        null=True,
-        verbose_name='Пользователь')
-    recipe = models.ManyToManyField(
+        verbose_name='Пользователь',
+    )
+    recipe = models.ForeignKey(
         Recipe,
+        on_delete=models.CASCADE,
         related_name='shopping_cart',
-        verbose_name='Покупка')
-    date_added = models.DateTimeField(
-        verbose_name="Дата добавления", auto_now_add=True, editable=False
+        verbose_name='Рецепт',
+        blank=True,
+        null=True
     )
 
     class Meta:
@@ -128,8 +133,8 @@ class ShoppingCart(models.Model):
         return f"{self.user} -> {self.recipe}"
 
 class FavoriteRecipe(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_recipes')
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorited_by')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorites')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
