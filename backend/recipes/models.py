@@ -5,7 +5,6 @@ from django.db import models
 User = get_user_model()
 
 
-# TODO: Добавить verbose_name к полям во всех моделях
 
 class Recipe(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipes', verbose_name='Автор') #SET_NULL???
