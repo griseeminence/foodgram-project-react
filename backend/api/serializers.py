@@ -27,7 +27,7 @@ class UsersCreateSerializer(UserCreateSerializer):
         model = User
         fields = tuple(User.REQUIRED_FIELDS) + (
             User.USERNAME_FIELD,
-            'password',
+            'password', 'id'
         )
 
 
