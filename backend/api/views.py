@@ -180,11 +180,14 @@ class UsersViewSet(UserViewSet):
 
 # TODO: D
 class IngredientViewSet(ReadOnlyModelViewSet):
-    queryset = Ingredient.objects.all()
+    """ Отображение ингредиентов. """
+
+    permission_classes = [AllowAny, ]
+    pagination_class = None
     serializer_class = IngredientSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (DjangoFilterBackend,)
-    filterset_class = IngredientFilter
+    queryset = Ingredient.objects.all()
+    filter_backends = [IngredientFilter, ]
+    search_fields = ['^name', ]
 
 
 class TagViewSet(ReadOnlyModelViewSet):
