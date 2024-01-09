@@ -47,9 +47,10 @@ class UsersSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return Subscribe.objects.filter(user=user, author=obj).exists()
+        # Проверка, аутентифицирован ли пользователь
+        if user.is_authenticated:
+            return Subscribe.objects.filter(user=user, author=obj).exists()
+        return False
 
 
 class SubscribeSerializer(UsersSerializer):
@@ -126,14 +127,17 @@ class RecipeReadSerializer(ModelSerializer):
         )
 
     def get_ingredients(self, obj):
-        recipe = obj
-        ingredients = recipe.ingredients.values(
-            'id',
-            'name',
-            'measurement_unit',
-            amount=F('ingredientinrecipe__amount')
-        )
-        return ingredients
+        recipe_ingredients = RecipeIngredients.objects.filter(recipe=obj)
+        ingredients_data = []
+        for recipe_ingredient in recipe_ingredients:
+            ingredient_data = {
+                'id': recipe_ingredient.ingredient.id,
+                'name': recipe_ingredient.ingredient.name,
+                'measurement_unit': recipe_ingredient.ingredient.measurement_unit,
+                'amount': recipe_ingredient.amount,
+            }
+            ingredients_data.append(ingredient_data)
+        return ingredients_data
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
@@ -148,7 +152,7 @@ class RecipeReadSerializer(ModelSerializer):
         return user.shopping_cart.filter(recipe=obj).exists()
 
 
-class IngredientInRecipeWriteSerializer(ModelSerializer):
+class RecipeIngredientsWriteSerializer(ModelSerializer):
     id = IntegerField(write_only=True)
 
     class Meta:
@@ -160,7 +164,7 @@ class RecipeWriteSerializer(ModelSerializer):
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(),
                                   many=True)
     author = UsersSerializer(read_only=True)
-    ingredients = IngredientInRecipeWriteSerializer(many=True)
+    ingredients = RecipeIngredientsWriteSerializer(many=True)
     image = Base64ImageField()
 
     class Meta:

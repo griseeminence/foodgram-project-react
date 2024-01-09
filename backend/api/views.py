@@ -1,6 +1,6 @@
 
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework.authentication import SessionAuthentication
@@ -65,9 +65,18 @@ class RecipeViewSet(ModelViewSet):
             return self.delete_from(ShoppingCart, request.user, pk)
 
     def add_to(self, model, user, pk):
-        if model.objects.filter(user=user, recipe__id=pk).exists():
-            return Response({'errors': 'Рецепт уже добавлен!'}, status=status.HTTP_400_BAD_REQUEST)
+        # Проверяем, существует ли рецепт
         recipe = get_object_or_404(Recipe, id=pk)
+        if not recipe:
+            raise Http404("Рецепт не найден!")
+        # Проверяем, есть ли уже рецепт в корзине пользователя
+        existing_entry = model.objects.filter(user=user, recipe=recipe).first()
+        if existing_entry:
+            return Response({'errors': 'Рецепт уже добавлен в корзину!'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Если рецепта ещё нет в корзине и он существует, то добавляем
+
+
         model.objects.create(user=user, recipe=recipe)
         serializer = RecipeShortSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -121,6 +130,13 @@ class UsersViewSet(UserViewSet):
     pagination_class = CustomPagination
     permission_classes = [AllowAny]
 
+
+    @action(detail=False, permission_classes=[IsAuthenticated])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+
     @action(
         detail=True,
         methods=['post', 'delete'],
@@ -172,6 +188,9 @@ class IngredientViewSet(ReadOnlyModelViewSet):
 
 
 class TagViewSet(ReadOnlyModelViewSet):
-    queryset = Tag.objects.all()
+
+
+    permission_classes = [AllowAny, ]
+    pagination_class = None
     serializer_class = TagSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = Tag.objects.all()
