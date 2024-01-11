@@ -6,11 +6,11 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(UserAdmin):
+    list_filter = ('email', 'first_name')
     list_display = (
-        'username',
-        'id',
         'email',
         'first_name',
         'last_name',
+        'id',
+        'username',
     )
-    list_filter = ('email', 'first_name')

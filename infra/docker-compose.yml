@@ -1,4 +1,10 @@
-version: '2.23'
+version: '3'
+
+volumes:
+  static_value:
+  media_value:
+  postgres_data:
+
 
 services:
 
@@ -11,18 +17,17 @@ services:
     restart: always
 
   backend:
-    image: eminencesaul/foodgram-backend
+    image: eminencesaul/foodgram_backend:latest
     volumes:
-      - static_value:/app/static/
+      - static_value:/app/collected_static/
       - media_value:/app/media/
     depends_on:
       - db
     env_file:
       - .env
-    restart: always
 
   frontend:
-    image: eminencesaul/foodgram-frontend
+    image: eminencesaul/foodgram_frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
@@ -31,19 +36,19 @@ services:
   nginx:
     image: nginx:1.21.3-alpine
     ports:
-      - "80:80"
+      - "8000:80"  # для запуска на сервере (внешний:внутренний)
+      # Для локального запуска localhost/admin, localhosta.
+#      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
-      - static_value:/var/html/static/
-      - media_value:/var/html/media/
+#      - static_value:/var/html/static/
+#      - media_value:/var/html/media/
+      - static_value:/app/collected_static/
+      - media_value:/app/media/
     depends_on:
       - backend
       - frontend
-    restart: always
 
-volumes:
-  static_value:
-  media_value:
-  postgres_data:
+

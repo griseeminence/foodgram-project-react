@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
 
-
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
@@ -61,7 +61,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
@@ -72,31 +71,6 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 #         'PORT': os.getenv('DB_PORT', default='5432')
 #     }
 # }
-
-
-
-
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': os.getenv(
-#             'DB_ENGINE', default='django.db.backends.postgresql'),
-#         'NAME': os.getenv(
-#             'POSTGRES_DB',
-#             default='postgres'),
-#         'USER': os.getenv(
-#             'POSTGRES_USER',
-#             default='postgres'),
-#         'PASSWORD': os.getenv(
-#             'POSTGRES_PASSWORD',
-#             default='postgres'),
-#         'HOST': os.getenv(
-#             'DB_HOST',
-#             default='db'),
-#         'PORT': os.getenv(
-#             'DB_PORT',
-#             default='5432'),
-#     }}
 
 DATABASES = {
     'default': {
@@ -130,10 +104,13 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
+# STATIC_ROOT = '/app/collected_static/'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
+# MEDIA_ROOT = '/app/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -151,15 +128,8 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'users.User'
 TEST_EMAIL = 'Testforrest2023@gmail.com'
 
-# DJOSER = {
-#     'LOGIN_FIELD': 'email',
-#     'SERIALIZERS': {
-#         'user': 'djoser.serializers.UserSerializer',
-#         'current_user': 'djoser.serializers.UserSerializer',
-#     },
-# }
-
 DJOSER = {
+    # 'LOGIN_FIELD': 'email',
     'SERIALIZERS': {
         'user_create': 'api.serializers.UsersCreateSerializer',
         'user': 'api.serializers.UsersSerializer',
@@ -173,10 +143,14 @@ DJOSER = {
     'HIDE_USERS': False,
 }
 
+# DJOSER = {
 
-
-
-
+#     'LOGIN_FIELD': 'email',
+#     'PERMISSIONS': {
+#         'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+#         'user_list': ['rest_framework.permissions.AllowAny'],
+#     }
+# }
 
 
 # LOGIN_URL = '/login/'

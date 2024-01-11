@@ -1,21 +1,20 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-
 User = get_user_model()
 
 
-
 class Recipe(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipes', verbose_name='Автор', null=True) #SET_NULL???
-    name = models.CharField('Название рецепта', max_length=255)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipes', verbose_name='Автор',
+                               null=True)  # SET_NULL???
+    name = models.CharField('Название рецепта', max_length=199)
     image = models.ImageField(
         'Изображение рецепта',
         upload_to='static/recipe/',
         blank=True,
         null=True)
     text = models.TextField('Описание рецепта', max_length=1000)
-    cooking_time = models.IntegerField(verbose_name='Время приготовления', default=0)
+    cooking_time = models.IntegerField(verbose_name='Время приготовления', default=1)
     ingredients = models.ManyToManyField('Ingredient', blank=False, through='RecipeIngredients', related_name='recipes')
     tags = models.ManyToManyField('Tag', related_name='recipes')
     pub_date = models.DateTimeField(auto_now_add=True, blank=True, null=True)
@@ -39,21 +38,20 @@ class Recipe(models.Model):
 
 
 class RecipeIngredients(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredient_list')
-    ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE, related_name='ingredient_list')
-    amount = models.PositiveSmallIntegerField(
-        default=1,
-        verbose_name='Количество',)
+    amount = models.PositiveSmallIntegerField(default=1, verbose_name='Количество', )
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredient_list', verbose_name='Рецепт')
+    ingredient = models.ForeignKey('Ingredient', on_delete=models.CASCADE, related_name='ingredient_list', verbose_name='Ингредиент')
 
     class Meta:
-        verbose_name = 'Количество ингредиента'
-        verbose_name_plural = 'Количество ингредиентов'
-        ordering = ['-id']
+        verbose_name = 'Количество ингредиента в рецепте'
+        verbose_name_plural = 'Количество ингредиентов в рецепте'
+        # ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.ingredient} в {self.recipe}'
 
 
 class Ingredient(models.Model):
-
-
     name = models.CharField('Название', max_length=200)
     measurement_unit = models.CharField('Единица измерения', max_length=200)
 
@@ -61,7 +59,6 @@ class Ingredient(models.Model):
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ['name']
-
 
     def __str__(self):
         return f'{self.name}, {self.measurement_unit}.'
@@ -78,8 +75,7 @@ class Tag(models.Model):
         ordering = ['-id']
 
     def __str__(self):
-        return f'{self.name} (цвет: {self.color})'
-
+        return f'{self.name} ({self.color})'
 
 
 class Subscribe(models.Model):
@@ -132,16 +128,22 @@ class ShoppingCart(models.Model):
     def __str__(self) -> str:
         return f"{self.user} -> {self.recipe}"
 
+
 class FavoriteRecipe(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorites')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites', verbose_name='Пользователь')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='favorites', verbose_name='Рецепт')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('user', 'recipe')
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=('user', 'recipe'),
+        #         name='unique_favorite_user_recipe'
+        #     )
+        # ]
         verbose_name = "Избранный рецепт"
         verbose_name_plural = "Избранные рецепты"
 
-
-    def __str__(self) -> str:
-        return f"{self.user} -> {self.recipe}"
+    def __str__(self):
+        return f'Избранный {self.recipe} у {self.user}'
