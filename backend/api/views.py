@@ -1,5 +1,5 @@
-
-from django.db.models import Sum
+from django.db import transaction
+from django.db.models import Sum, Prefetch
 from django.http import HttpResponse, Http404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
@@ -7,13 +7,15 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 import datetime
+from django.db import IntegrityError
+from django.utils.text import slugify
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import CustomPagination
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer, \
     RecipeShortSerializer, UsersSerializer, SubscribeSerializer
 from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe, RecipeIngredients
-
+from rest_framework.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
 from django.shortcuts import get_object_or_404
@@ -34,8 +36,18 @@ class RecipeViewSet(ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            if 'ingredients' in e.get_full_details():
+                return Response({'error': 'Bad Request: Поле "ingredients" не может быть пустым.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Bad Request'}, status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -78,11 +90,9 @@ class RecipeViewSet(ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_from(self, model, user, pk):
-        obj = model.objects.filter(user=user, recipe__id=pk)
-        if obj.exists():
-            obj.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response({'errors': 'Рецепт уже удален или не существует'}, status=status.HTTP_400_BAD_REQUEST)
+        obj = get_object_or_404(model, user=user, recipe__id=pk)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
@@ -90,11 +100,30 @@ class RecipeViewSet(ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        if not user.shopping_cart.exists():
-            return Response(status=HTTP_400_BAD_REQUEST)
+        cart_entries = user.shopping_cart.select_related('recipe').all()
+        print(cart_entries)
+        ingredients_dict = {}
 
+        for entry in cart_entries:
+            recipe = entry.recipe
+            recipe_ingredients = recipe.ingredient_list.all()
 
-        return
+            for recipe_ingredient in recipe_ingredients:
+                ingredient = recipe_ingredient.ingredient
+                amount = recipe_ingredient.amount * entry.recipe_portions
+                ingredients_dict.setdefault(ingredient, 0)
+                ingredients_dict[ingredient] += amount
+
+        shopping_list_content = [
+            f'{ingredient.name} - {amount} {ingredient.measurement_unit}'
+            for ingredient, amount in ingredients_dict.items()
+        ]
+
+        shopping_list_text = '\n'.join(shopping_list_content)
+
+        response = HttpResponse(shopping_list_text, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        return response
 
 
 # class RecipeViewSet(ModelViewSet):
@@ -202,29 +231,23 @@ class UsersViewSet(UserViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
-
-    @action(
-        detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated]
-    )
+    @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
     def subscribe(self, request, **kwargs):
         user = request.user
         author_id = self.kwargs.get('id')
         author = get_object_or_404(User, id=author_id)
 
         if request.method == 'POST':
-            serializer = SubscribeSerializer(author,
-                                             data=request.data,
-                                             context={"request": request})
-            serializer.is_valid(raise_exception=True)
-            Subscribe.objects.create(user=user, author=author)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            serializer = SubscribeSerializer(author, data=request.data, context={"request": request})
+            try:
+                serializer.is_valid(raise_exception=True)
+                Subscribe.objects.create(user=user, author=author)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response({'detail': 'Already subscribed.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.method == 'DELETE':
-            subscription = get_object_or_404(Subscribe,
-                                             user=user,
-                                             author=author)
+        elif request.method == 'DELETE':
+            subscription = get_object_or_404(Subscribe, user=user, author=author)
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 

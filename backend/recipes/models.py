@@ -94,6 +94,7 @@ class Subscribe(models.Model):
         auto_now_add=True)
 
     class Meta:
+        unique_together = ('user', 'author')
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
         ordering = ['-id']
