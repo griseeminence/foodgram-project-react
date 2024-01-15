@@ -6,6 +6,7 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(UserAdmin):
+    """Админка для пользователей."""
     list_filter = ('email', 'first_name')
     list_display = (
         'email',
