@@ -72,7 +72,8 @@ class Recipe(models.Model):
         ).exists()
 
     def __str__(self):
-        return f'{self.name}. Автор: {self.author.username}'
+        author_name = self.author.username if self.author else "Unknown Author"
+        return f"{self.name} by {author_name}"
 
 
 class RecipeIngredients(models.Model):

@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.contrib.admin import display
 
-from .models import (FavoriteRecipe, Ingredient, RecipeIngredients, Recipe,
-                     ShoppingCart, Tag, Subscribe)
+from .models import (FavoriteRecipe, Ingredient, Recipe, RecipeIngredients,
+                     ShoppingCart, Subscribe, Tag)
 
 
 @admin.register(Ingredient)

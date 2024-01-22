@@ -4,7 +4,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
@@ -12,7 +11,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'empty')
 
 DEBUG = str(os.getenv('DEBUG', True)).lower() == 'true'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0', 'foodgrabber.ddns.net', 'backend']
+ALLOWED_HOSTS = ['127.0.0.1', 'foodgrabber.ddns.net', '84.201.139.121']
 # ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
@@ -72,13 +71,6 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -108,8 +100,8 @@ STATIC_ROOT = BASE_DIR / 'collected_static'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-# MEDIA_ROOT = '/app/media/'
+# MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = '/app/media/'
 # MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

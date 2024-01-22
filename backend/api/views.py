@@ -1,26 +1,27 @@
-from datetime import datetime
-
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.db.models import Sum
 from django.http import HttpResponse
-from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.db import IntegrityError
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework.status import HTTP_400_BAD_REQUEST
-from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
-from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, AllowAny
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+
+from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
+                            RecipeIngredients, ShoppingCart, Subscribe, Tag)
 
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import CustomPagination
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
-from .serializers import (IngredientSerializer, TagSerializer, RecipeReadSerializer, RecipeWriteSerializer,
-                          RecipeShortSerializer, UsersSerializer, SubscribeSerializer)
-from recipes.models import Recipe, Tag, Ingredient, FavoriteRecipe, ShoppingCart, Subscribe, RecipeIngredients
+from .serializers import (IngredientSerializer, RecipeReadSerializer,
+                          RecipeShortSerializer, RecipeWriteSerializer,
+                          SubscribeSerializer, TagSerializer, UsersSerializer)
 
 User = get_user_model()
 
@@ -44,8 +45,51 @@ class RecipeViewSet(ModelViewSet):
             return Response({'error': 'Bad Request'}, status=status.HTTP_400_BAD_REQUEST)
 
         self.perform_create(serializer)
+        recipe = serializer.instance
+        ingredients_data = request.data.get('ingredients', [])
+
+        for ingredient_data in ingredients_data:
+            ingredient_id = ingredient_data.get('id')
+            amount = ingredient_data.get('amount')
+            if ingredient_id and amount:
+                ingredient = Ingredient.objects.get(pk=ingredient_id)
+                RecipeIngredients.objects.create(recipe=recipe, ingredient=ingredient, amount=amount)
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        tags_data = request.data.get('tags', [])
+        instance.tags.set(tags_data)
+
+        ingredients_data = request.data.get('ingredients', [])
+        ingredients_to_delete = [ingredient['id'] for ingredient in instance.ingredients.values()]
+
+        for ingredient_data in ingredients_data:
+            ingredient_id = ingredient_data.get('id')
+            amount = ingredient_data.get('amount')
+
+            recipe_ingredient, created = RecipeIngredients.objects.get_or_create(
+                recipe=instance,
+                ingredient_id=ingredient_id,
+                defaults={'amount': amount}
+            )
+
+            if not created:
+                recipe_ingredient.amount = amount
+                recipe_ingredient.save()
+
+            if ingredient_id in ingredients_to_delete:
+                ingredients_to_delete.remove(ingredient_id)
+
+        RecipeIngredients.objects.filter(recipe=instance, ingredient_id__in=ingredients_to_delete).delete()
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -97,43 +141,39 @@ class RecipeViewSet(ModelViewSet):
         if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
 
-        ingredients = RecipeIngredients.objects.filter(
-            recipe__shopping_cart__user=request.user
-        ).values(
-            'ingredient__name',
-            'ingredient__measurement_unit'
-        ).annotate(amount=Sum('amount'))
+        def get_user_shopping_cart_ingredients():
+            return RecipeIngredients.objects.filter(
+                recipe__shopping_cart__user=request.user
+            ).values(
+                'ingredient__name',
+                'ingredient__measurement_unit'
+            )
 
-        today = datetime.today()
-        shopping_list = (
-            f'Список покупок для: {user.get_full_name()}\n\n'
-            f'Дата: {today:%Y-%m-%d}\n\n'
-        )
-        shopping_list += '\n'.join([
-            f'- {ingredient["ingredient__name"]} '
-            f'({ingredient["ingredient__measurement_unit"]})'
-            f' - {ingredient["amount"]}'
-            for ingredient in ingredients
-        ])
-        shopping_list += f'\n\nFoodgram ({today:%Y})'
+        def aggregate_ingredient_amount(ingredients):
+            return ingredients.annotate(amount=Sum('amount'))
 
-        filename = f'{user.username}_shopping_list.txt'
+        def format_ingredient_line(ingredient):
+            return f'- {ingredient["ingredient__name"]} ' \
+                   f'({ingredient["ingredient__measurement_unit"]}) - {ingredient["amount"]}'
+
+        user_ingredients = get_user_shopping_cart_ingredients()
+        aggregated_ingredients = aggregate_ingredient_amount(user_ingredients)
+        name = f'shopping_list_for_{user.get_username}.txt'
+        shopping_list = f'Что купить для {user.get_username()}:\n'
+        shopping_list += '\n'.join([format_ingredient_line(ingredient) for ingredient in aggregated_ingredients])
+
         response = HttpResponse(shopping_list, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename={filename}'
+        response['Content-Disposition'] = f'attachment; filename={name}'
 
         return response
+
 
 class UsersViewSet(UserViewSet):
     """Вьюсет для пользователей и подписок."""
     queryset = User.objects.all()
     serializer_class = UsersSerializer
     pagination_class = CustomPagination
-    permission_classes = [AllowAny]
-
-    # @action(detail=False, permission_classes=[IsAuthenticated])
-    # def me(self, request):
-    #     serializer = self.get_serializer(request.user)
-    #     return Response(serializer.data)
+    permission_classes = (AllowAny,)
 
     @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
     def subscribe(self, request, **kwargs):
@@ -148,7 +188,7 @@ class UsersViewSet(UserViewSet):
                 Subscribe.objects.create(user=user, author=author)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             except IntegrityError:
-                return Response({'detail': 'Already subscribed.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Уже подписан.'}, status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == 'DELETE':
             subscription = get_object_or_404(Subscribe, user=user, author=author)
@@ -163,24 +203,23 @@ class UsersViewSet(UserViewSet):
         user = request.user
         queryset = User.objects.filter(subscribing__user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = SubscribeSerializer(pages,
-                                         many=True,
-                                         context={'request': request})
+        serializer = SubscribeSerializer(pages, many=True, context={'request': request})
         return self.get_paginated_response(serializer.data)
+
 
 class IngredientViewSet(ReadOnlyModelViewSet):
     """Вьюсет для ингредиентов."""
-    serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
-    permission_classes = [AllowAny, ]
+    serializer_class = IngredientSerializer
+    permission_classes = (AllowAny,)
     pagination_class = None
-    filter_backends = [IngredientFilter, ]
     search_fields = ['^name', ]
+    filter_backends = [IngredientFilter, ]
 
 
 class TagViewSet(ReadOnlyModelViewSet):
     """Вьюсет для тегов."""
-    serializer_class = TagSerializer
     queryset = Tag.objects.all()
-    permission_classes = [AllowAny, ]
+    permission_classes = (AllowAny,)
+    serializer_class = TagSerializer
     pagination_class = None
