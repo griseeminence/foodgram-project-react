@@ -1,6 +1,6 @@
-FROM python:3.8-slim
+FROM python:3.9
 
-WORKDIR /code
+WORKDIR /app
 
 RUN python -m pip install --upgrade pip
 RUN pip install gunicorn
@@ -11,4 +11,4 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 
 COPY . .
 
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0:7000"]
+CMD ["gunicorn", "backend.wsgi", "--bind", "0:7000"]
