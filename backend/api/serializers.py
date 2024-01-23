@@ -109,7 +109,9 @@ class RecipeReadSerializer(ModelSerializer):
             ingredient_data = {
                 'id': recipe_ingredient.ingredient.id,
                 'name': recipe_ingredient.ingredient.name,
-                'measurement_unit': recipe_ingredient.ingredient.measurement_unit,
+                'measurement_unit': (
+                    recipe_ingredient.ingredient.measurement_unit
+                ),
                 'amount': recipe_ingredient.amount,
             }
             ingredients_data.append(ingredient_data)
@@ -226,11 +228,15 @@ class RecipeWriteSerializer(ModelSerializer):
     def validate_tags(self, value):
         tags = value
         if not tags:
-            raise ValidationError({'tags': 'Нужно выбрать хотя бы один тег!'})
+            raise ValidationError(
+                {'tags': 'Нужно выбрать хотя бы один тег!'}
+            )
         tags_list = []
         for tag in tags:
             if tag in tags_list:
-                raise ValidationError({'tags': 'Теги должны быть уникальными!'})
+                raise ValidationError(
+                    {'tags': 'Теги должны быть уникальными!'}
+                )
             tags_list.append(tag)
         return value
 

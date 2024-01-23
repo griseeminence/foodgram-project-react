@@ -92,13 +92,13 @@ class RecipeViewSet(ModelViewSet):
             ingredient_id = ingredient_data.get('id')
             amount = ingredient_data.get('amount')
 
-            recipe_ingredient, created = RecipeIngredients.objects.get_or_create(
+            recipe_ingredient, cr = RecipeIngredients.objects.get_or_create(
                 recipe=instance,
                 ingredient_id=ingredient_id,
                 defaults={'amount': amount}
             )
 
-            if not created:
+            if not cr:
                 recipe_ingredient.amount = amount
                 recipe_ingredient.save()
 
@@ -188,11 +188,11 @@ class RecipeViewSet(ModelViewSet):
             )
 
         user_ingredients = get_user_shopping_cart_ingredients()
-        aggregated_ingredients = aggregate_ingredient_amount(user_ingredients)
+        agg_ing = aggregate_ingredient_amount(user_ingredients)
         name = f'shopping_list_for_{user.get_username}.txt'
         shopping_list = f'Что купить для {user.get_username()}:\n'
         shopping_list += '\n'.join(
-            [format_ingredient_line(ingredient) for ingredient in aggregated_ingredients]
+            [format_ingredient_line(ingredient) for ingredient in agg_ing]
         )
 
         response = HttpResponse(shopping_list, content_type='text/plain')
