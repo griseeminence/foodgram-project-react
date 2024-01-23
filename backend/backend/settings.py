@@ -11,8 +11,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'empty')
 
 DEBUG = str(os.getenv('DEBUG', True)).lower() == 'true'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'foodgrabber.ddns.net', '84.201.139.121']
-# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = ['127.0.0.1', 'foodgrabber.ddns.net', '84.201.139.121', 'localhost']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -96,13 +95,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
-# STATIC_ROOT = '/app/collected_static/'
-# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
-# MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_ROOT = '/app/media/'
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -134,4 +129,3 @@ DJOSER = {
     },
     'HIDE_USERS': False,
 }
-
