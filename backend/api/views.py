@@ -40,9 +40,14 @@ class RecipeViewSet(ModelViewSet):
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             if 'ingredients' in e.get_full_details():
-                return Response({'error': 'Bad Request: Поле "ingredients" не может быть пустым.'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            return Response({'error': 'Bad Request'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'Bad Request: Поле "ingredients" пустое.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                {'error': 'Bad Request'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         self.perform_create(serializer)
         recipe = serializer.instance
@@ -53,21 +58,35 @@ class RecipeViewSet(ModelViewSet):
             amount = ingredient_data.get('amount')
             if ingredient_id and amount:
                 ingredient = Ingredient.objects.get(pk=ingredient_id)
-                RecipeIngredients.objects.create(recipe=recipe, ingredient=ingredient, amount=amount)
+                RecipeIngredients.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    amount=amount
+                )
 
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
 
         tags_data = request.data.get('tags', [])
         instance.tags.set(tags_data)
 
         ingredients_data = request.data.get('ingredients', [])
-        ingredients_to_delete = [ingredient['id'] for ingredient in instance.ingredients.values()]
+        ingredients_to_delete = [
+            ingredient['id'] for ingredient in instance.ingredients.values()
+        ]
 
         for ingredient_data in ingredients_data:
             ingredient_id = ingredient_data.get('id')
@@ -86,7 +105,10 @@ class RecipeViewSet(ModelViewSet):
             if ingredient_id in ingredients_to_delete:
                 ingredients_to_delete.remove(ingredient_id)
 
-        RecipeIngredients.objects.filter(recipe=instance, ingredient_id__in=ingredients_to_delete).delete()
+        RecipeIngredients.objects.filter(
+            recipe=instance,
+            ingredient_id__in=ingredients_to_delete
+        ).delete()
 
         self.perform_update(serializer)
         return Response(serializer.data)
@@ -120,9 +142,15 @@ class RecipeViewSet(ModelViewSet):
 
     def add_to(self, model, user, pk):
         recipe = get_object_or_404(Recipe, id=pk)
-        existing_entry = model.objects.filter(user=user, recipe=recipe).first()
+        existing_entry = model.objects.filter(
+            user=user,
+            recipe=recipe
+        ).first()
         if existing_entry:
-            return Response({'errors': 'Рецепт уже добавлен в корзину!'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Рецепт уже добавлен в корзину!'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         model.objects.create(user=user, recipe=recipe)
         serializer = RecipeShortSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -153,14 +181,19 @@ class RecipeViewSet(ModelViewSet):
             return ingredients.annotate(amount=Sum('amount'))
 
         def format_ingredient_line(ingredient):
-            return f'- {ingredient["ingredient__name"]} ' \
-                   f'({ingredient["ingredient__measurement_unit"]}) - {ingredient["amount"]}'
+            return (
+                f'- {ingredient["ingredient__name"]}'
+                f'({ingredient["ingredient__measurement_unit"]})'
+                f'- {ingredient["amount"]}'
+            )
 
         user_ingredients = get_user_shopping_cart_ingredients()
         aggregated_ingredients = aggregate_ingredient_amount(user_ingredients)
         name = f'shopping_list_for_{user.get_username}.txt'
         shopping_list = f'Что купить для {user.get_username()}:\n'
-        shopping_list += '\n'.join([format_ingredient_line(ingredient) for ingredient in aggregated_ingredients])
+        shopping_list += '\n'.join(
+            [format_ingredient_line(ingredient) for ingredient in aggregated_ingredients]
+        )
 
         response = HttpResponse(shopping_list, content_type='text/plain')
         response['Content-Disposition'] = f'attachment; filename={name}'
@@ -175,23 +208,41 @@ class UsersViewSet(UserViewSet):
     pagination_class = CustomPagination
     permission_classes = (AllowAny,)
 
-    @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated]
+    )
     def subscribe(self, request, **kwargs):
         user = request.user
         author_id = self.kwargs.get('id')
         author = get_object_or_404(User, id=author_id)
 
         if request.method == 'POST':
-            serializer = SubscribeSerializer(author, data=request.data, context={"request": request})
+            serializer = SubscribeSerializer(
+                author,
+                data=request.data,
+                context={"request": request}
+            )
             try:
                 serializer.is_valid(raise_exception=True)
                 Subscribe.objects.create(user=user, author=author)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(
+                    serializer.data,
+                    status=status.HTTP_201_CREATED
+                )
             except IntegrityError:
-                return Response({'detail': 'Уже подписан.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'detail': 'Уже подписан.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         elif request.method == 'DELETE':
-            subscription = get_object_or_404(Subscribe, user=user, author=author)
+            subscription = get_object_or_404(
+                Subscribe,
+                user=user,
+                author=author
+            )
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -203,7 +254,11 @@ class UsersViewSet(UserViewSet):
         user = request.user
         queryset = User.objects.filter(subscribing__user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = SubscribeSerializer(pages, many=True, context={'request': request})
+        serializer = SubscribeSerializer(
+            pages,
+            many=True,
+            context={'request': request}
+        )
         return self.get_paginated_response(serializer.data)
 
 

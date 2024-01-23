@@ -91,7 +91,3 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### **Автор**  
 *Кольцов П.*
 
-### **Контакты**
-```
-k.pavel080@gmail.com
-```
