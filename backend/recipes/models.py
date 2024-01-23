@@ -199,7 +199,10 @@ class ShoppingCart(models.Model):
         verbose_name_plural = 'Покупки'
         ordering = ['-id']
         constraints = [
-            UniqueConstraint(fields=['user', 'recipe'], name='unique_shopping_cart')
+            UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_shopping_cart'
+            )
         ]
 
     def __str__(self) -> str:

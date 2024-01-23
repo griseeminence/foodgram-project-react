@@ -9,8 +9,9 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
-from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
-                            RecipeIngredients, ShoppingCart, Subscribe, Tag)
+from recipes.models import (
+    Ingredient, Recipe, RecipeIngredients, Subscribe, Tag
+)
 
 User = get_user_model()
 
@@ -58,7 +59,14 @@ class UsersCreateSerializer(UserCreateSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name', 'password')
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'password'
+        )
 
     def validate_username(self, value):
         if value.lower() == 'me':
@@ -93,7 +101,9 @@ class RecipeReadSerializer(ModelSerializer):
         )
 
     def get_ingredients(self, obj):
-        recipe_ingredients = RecipeIngredients.objects.filter(recipe=obj)
+        recipe_ingredients = RecipeIngredients.objects.filter(
+            recipe=obj
+        )
         ingredients_data = []
         for recipe_ingredient in recipe_ingredients:
             ingredient_data = {
@@ -137,10 +147,16 @@ class RecipeIngredientsWriteSerializer(ModelSerializer):
 
 class RecipeWriteSerializer(ModelSerializer):
     """Сериалайзер для рецептов. Режим методов записи."""
-    tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
+    tags = PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
     author = UsersSerializer(read_only=True)
     image = Base64ImageField()
-    ingredients = RecipeIngredientsWriteSerializer(many=True, read_only=True)
+    ingredients = RecipeIngredientsWriteSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Recipe
@@ -157,9 +173,13 @@ class RecipeWriteSerializer(ModelSerializer):
 
     def validate_cooking_time(self, value):
         if value is None:
-            raise ValidationError('Поле "cooking_time" должно быть указано!')
+            raise ValidationError(
+                'Поле "cooking_time" должно быть указано!'
+            )
         if value < 1:
-            raise ValidationError('Значение в поле "cooking_time" должно быть больше 0!')
+            raise ValidationError(
+                'Значение в поле "cooking_time" должно быть больше 0!'
+            )
         return value
 
     def validate_image(self, value):
@@ -170,24 +190,34 @@ class RecipeWriteSerializer(ModelSerializer):
     def validate_ingredients(self, value):
         ingredients = value
         if not ingredients:
-            raise ValidationError({'ingredients': 'Нужен хотя бы один ингредиент!'})
+            raise ValidationError(
+                {'ingredients': 'Нужен хотя бы один ингредиент!'}
+            )
 
         ingredients_list = []
 
         for item in ingredients:
             if 'id' not in item:
-                raise ValidationError({'ingredients': 'Указан некорректный формат ингредиента!'})
+                raise ValidationError(
+                    {'ingredients': 'Указан некорректный формат ингредиента!'}
+                )
 
             try:
                 ingredient = Ingredient.objects.get(id=item['id'])
             except Ingredient.DoesNotExist:
-                raise ValidationError({'ingredients': 'Ингредиент не существует!'})
+                raise ValidationError(
+                    {'ingredients': 'Ингредиент не существует!'}
+                )
 
             if ingredient in ingredients_list:
-                raise ValidationError({'ingredients': 'Ингредиенты не могут повторяться!'})
+                raise ValidationError(
+                    {'ingredients': 'Ингредиенты не могут повторяться!'}
+                )
 
             if int(item['amount']) <= 0:
-                raise ValidationError({'amount': 'Количество ингредиента должно быть больше 0!'})
+                raise ValidationError(
+                    {'amount': 'Количество ингредиента должно быть больше 0!'}
+                )
 
             ingredients_list.append(ingredient)
 
@@ -296,11 +326,16 @@ class SubscribeSerializer(UsersSerializer):
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         if user.is_authenticated:
-            return Subscribe.objects.filter(user=user, author=obj).exists()
+            return Subscribe.objects.filter(
+                user=user,
+                author=obj
+            ).exists()
         return False
 
     def get_recipes(self, obj):
-        limit = self.context.get('request').query_params.get('recipes_limit')
+        limit = self.context.get(
+            'request'
+        ).query_params.get('recipes_limit')
         if limit:
             queryset = Recipe.objects.filter(
                 author=obj).order_by('-id')[:int(limit)]
@@ -319,7 +354,13 @@ class SubscribeSerializer(UsersSerializer):
         author = get_object_or_404(User, pk=author_id)
 
         try:
-            subscription = Subscribe.objects.create(user=current_user, author=author)
+            Subscribe.objects.create(
+                user=current_user,
+                author=author
+            )
         except IntegrityError:
-            raise serializers.ValidationError("Вы уже подписаны на данного пользователя", code='unique')
+            raise serializers.ValidationError(
+                'Вы уже подписаны на данного пользователя',
+                code='unique'
+            )
         return author
