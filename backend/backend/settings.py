@@ -116,7 +116,7 @@ AUTH_USER_MODEL = 'users.User'
 TEST_EMAIL = 'Testforrest2023@gmail.com'
 
 DJOSER = {
-    # 'LOGIN_FIELD': 'email',
+    # 'LOGIN_FIELD': 'email'
     'SERIALIZERS': {
         'user_create': 'api.serializers.UsersCreateSerializer',
         'user': 'api.serializers.UsersSerializer',
