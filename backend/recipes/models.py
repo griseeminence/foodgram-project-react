@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
+
+from backend.constants import MIN_VALUE, MAX_VALUE
 
 User = get_user_model()
 
@@ -28,9 +31,18 @@ class Recipe(models.Model):
         'Описание рецепта',
         max_length=1000
     )
-    cooking_time = models.IntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
-        default=1
+        validators=[
+            MinValueValidator(
+                MIN_VALUE,
+                message='Время приготовления не менее 1 минуты!'
+            ),
+            MaxValueValidator(
+                MAX_VALUE,
+                message='Время приготовления не более 32000 минут!'
+            ),
+        ],
     )
     ingredients = models.ManyToManyField(
         'Ingredient',
@@ -49,27 +61,9 @@ class Recipe(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ['-id']
-
-    def add_to_favorites(self, user):
-        FavoriteRecipe.objects.get_or_create(
-            user=user,
-            recipe=self
-        )
-
-    def remove_from_favorites(self, user):
-        FavoriteRecipe.objects.filter(
-            user=user,
-            recipe=self
-        ).delete()
-
-    def is_favorited_by(self, user):
-        return FavoriteRecipe.objects.filter(
-            user=user,
-            recipe=self
-        ).exists()
 
     def __str__(self):
         author_name = self.author.username if self.author else "Unknown Author"
@@ -79,8 +73,17 @@ class Recipe(models.Model):
 class RecipeIngredients(models.Model):
     """Промежуточная модель рецепт - ингредиент."""
     amount = models.PositiveSmallIntegerField(
-        default=1,
         verbose_name='Количество',
+        validators=[
+            MinValueValidator(
+                MIN_VALUE,
+                message='Время приготовления не менее 1 минуты!'
+            ),
+            MaxValueValidator(
+                MAX_VALUE,
+                message='Время приготовления не более 32000 минут!'
+            ),
+        ],
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -96,6 +99,7 @@ class RecipeIngredients(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name = 'Количество ингредиента в рецепте'
         verbose_name_plural = 'Количество ингредиентов в рецепте'
 
@@ -115,9 +119,9 @@ class Ingredient(models.Model):
     )
 
     class Meta:
+        ordering = ['name']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
-        ordering = ['name']
 
     def __str__(self):
         return f'{self.name}, {self.measurement_unit}.'
@@ -143,9 +147,9 @@ class Tag(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
-        ordering = ['-id']
 
     def __str__(self):
         return f'{self.name} ({self.color})'
@@ -168,10 +172,10 @@ class Subscribe(models.Model):
         auto_now_add=True)
 
     class Meta:
+        ordering = ['-id']
         unique_together = ('user', 'author')
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-        ordering = ['-id']
 
     def __str__(self):
         return f'Пользователь {self.user} -> автор {self.author}'
@@ -195,9 +199,9 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name = 'Покупка'
         verbose_name_plural = 'Покупки'
-        ordering = ['-id']
         constraints = [
             UniqueConstraint(
                 fields=['user', 'recipe'],
@@ -226,6 +230,7 @@ class FavoriteRecipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ['-id']
         unique_together = ('user', 'recipe')
         verbose_name = "Избранный рецепт"
         verbose_name_plural = "Избранные рецепты"
