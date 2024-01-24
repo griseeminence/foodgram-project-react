@@ -49,69 +49,12 @@ class RecipeViewSet(ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        self.perform_create(serializer)
-        recipe = serializer.instance
-        ingredients_data = request.data.get('ingredients', [])
-
-        for ingredient_data in ingredients_data:
-            ingredient_id = ingredient_data.get('id')
-            amount = ingredient_data.get('amount')
-            if ingredient_id and amount:
-                ingredient = Ingredient.objects.get(pk=ingredient_id)
-                RecipeIngredients.objects.create(
-                    recipe=recipe,
-                    ingredient=ingredient,
-                    amount=amount
-                )
-
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data,
             status=status.HTTP_201_CREATED,
             headers=headers
         )
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-
-        tags_data = request.data.get('tags', [])
-        instance.tags.set(tags_data)
-
-        ingredients_data = request.data.get('ingredients', [])
-        ingredients_to_delete = [
-            ingredient['id'] for ingredient in instance.ingredients.values()
-        ]
-
-        for ingredient_data in ingredients_data:
-            ingredient_id = ingredient_data.get('id')
-            amount = ingredient_data.get('amount')
-
-            recipe_ingredient, cr = RecipeIngredients.objects.get_or_create(
-                recipe=instance,
-                ingredient_id=ingredient_id,
-                defaults={'amount': amount}
-            )
-
-            if not cr:
-                recipe_ingredient.amount = amount
-                recipe_ingredient.save()
-
-            if ingredient_id in ingredients_to_delete:
-                ingredients_to_delete.remove(ingredient_id)
-
-        RecipeIngredients.objects.filter(
-            recipe=instance,
-            ingredient_id__in=ingredients_to_delete
-        ).delete()
-
-        self.perform_update(serializer)
-        return Response(serializer.data)
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -126,8 +69,7 @@ class RecipeViewSet(ModelViewSet):
     def favorite(self, request, pk):
         if request.method == 'POST':
             return self.add_to(FavoriteRecipe, request.user, pk)
-        else:
-            return self.delete_from(FavoriteRecipe, request.user, pk)
+        return self.delete_from(FavoriteRecipe, request.user, pk)
 
     @action(
         detail=True,
@@ -137,8 +79,7 @@ class RecipeViewSet(ModelViewSet):
     def shopping_cart(self, request, pk):
         if request.method == 'POST':
             return self.add_to(ShoppingCart, request.user, pk)
-        else:
-            return self.delete_from(ShoppingCart, request.user, pk)
+        return self.delete_from(ShoppingCart, request.user, pk)
 
     def add_to(self, model, user, pk):
         recipe = get_object_or_404(Recipe, id=pk)
