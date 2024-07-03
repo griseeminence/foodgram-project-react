@@ -25,7 +25,7 @@ from .serializers import (IngredientSerializer, RecipeReadSerializer,
 
 User = get_user_model()
 
-
+#check
 class RecipeViewSet(ModelViewSet):
     """Вьюсет для рецептов и операций с ними."""
     queryset = Recipe.objects.all()
