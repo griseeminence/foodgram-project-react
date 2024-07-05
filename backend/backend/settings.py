@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     'djoser',
     'django_filters',
 ]
-
+#Middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
