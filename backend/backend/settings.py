@@ -114,7 +114,7 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'users.User'
 TEST_EMAIL = 'Testforrest2023@gmail.com'
-
+#check
 DJOSER = {
     # 'LOGIN_FIELD': 'email'
     'SERIALIZERS': {
